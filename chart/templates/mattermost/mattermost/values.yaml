@@ -10,6 +10,9 @@ domain: {{ $domainName }}
 
 openshift: {{ .Values.openshift }}
 
+image:
+  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  
 istio:
   enabled: {{ .Values.istio.enabled }}
   chat:
@@ -74,6 +77,9 @@ minio:
   secretKey: {{ .secretKey | default "BigBangDEVONLY" }}
   imagePullSecrets:
     - name: private-registry
+  tenants:
+    metrics:
+      enabled: {{ $.Values.monitoring.enabled }}
 {{- end }}
 {{- end }}
 

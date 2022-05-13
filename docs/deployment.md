@@ -1,12 +1,6 @@
 # Big Bang Deployment
 
-Table of Contents
-
-- [Big Bang Deployment](#big-bang-deployment)
-  - [GitOps](#gitops)
-  - [Installation](#installation)
-  - [Upgrade](#upgrade)
-  - [Monitor](#monitor)
+[[_TOC_]]
 
 ## GitOps
 
@@ -46,13 +40,13 @@ Big Bang follows a [GitOps](https://www.weave.works/blog/what-is-gitops-really) 
 
 All changes to the Big Bang cluster should be made through Git.  After changes are pushed, Big Bang will automatically reconcile the difference with the cluster.
 
-> It may take Big Bang up to 10 minutes to recognize your changes and start to deploy them.  This is based on the `interval` value set for polling.  You can force Big Bang to immediately check for changes by running the [sync.sh](../hack/sync.sh) script.
+> It may take Big Bang up to 10 minutes to recognize your changes and start to deploy them.  This is based on the `interval` value set for polling.  You can force Big Bang to immediately check for changes by running the [sync.sh](../scripts/sync.sh) script.
 
 Changes to values can be tested in each environment using the named folders to override values and/or point to specific repo branches or tags.  After testing, the changes can be placed into the `./base` folder if the change is shared between all environments.
 
 ## Monitor
 
-The following commands will help you monitor the progress of the Big Bang deployment.  Review the [flowchart](./1_overview.md#Diagram), if needed, to understand the progression.  Use the [Troubleshooting Guide](./b_troubleshooting.md) if you have failures.
+The following commands will help you monitor the progress of the Big Bang deployment.  Review the [flowchart](./overview.md#Diagram), if needed, to understand the progression.  Use the [Troubleshooting Guide](./troubleshooting.md) if you have failures.
 
 1. Verify Flux is running
 
@@ -182,7 +176,8 @@ The following commands will help you monitor the progress of the Big Bang deploy
     gatekeeper-system   deployment.apps/gatekeeper-audit                1/1     1            1           2m8s
     istio-operator      deployment.apps/istio-operator                  0/1     1            0           8s
 
-    NAMESPACE           NAME                                                 READY   STATUS              RESTARTS   AGEkube-system         pod/local-path-provisioner-6d59f47c7-s6rln           1/1     Running             0          4m36s
+    NAMESPACE           NAME                                                 READY   STATUS              RESTARTS   AGE
+    kube-system         pod/local-path-provisioner-6d59f47c7-s6rln           1/1     Running             0          4m36s
     kube-system         pod/coredns-7944c66d8d-flk4p                         1/1     Running             0          4m36s
     flux-system         pod/helm-controller-578cdbcd8b-tjzs7                 1/1     Running             0          4m6s
     flux-system         pod/notification-controller-7c59d85f77-92ckv         1/1     Running             0          4m6s

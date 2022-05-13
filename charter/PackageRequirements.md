@@ -4,7 +4,7 @@ All Big Bang Packages shall adhere to the following requirements.  Where possibl
 
 [[_TOC_]]
 
-## Gitlab Project Settings
+## GitLab Project Settings
 
 * The `main` branch should be default in each project
 * Merge Requests should require 1 approver
@@ -47,6 +47,15 @@ Forked upstream helm charts will be configured with the appropriate BigBang _add
 #### Custom Helm Charts
 
 In the case where an accepted upstream helm chart does not exist, BigBang will create and maintain it's own custom helm chart for the package in question.  The helm chart will be in conformance with the [Package Standards](#pr-x.-package-standards).
+
+### Documentation for how to upgrade the Package helm charts
+
+The Package chart should include maintenance documentation that describes
+1. The process for upgrading
+2. How to test the upgrade
+3. Documentation for changes made to the upstream chart.
+
+This documentation will be located in each Package repo and named `/docs/DEVELOPMENT_MAINTENANCE.md`. The document should be linked from the top level `/CONTRIBUTING.md` in the "To contribute a change" section item #2.
 
 ## PR-X. Package Standards
 

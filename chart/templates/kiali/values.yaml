@@ -10,11 +10,19 @@ domain: {{ $domainName }}
 
 openshift: {{ .Values.openshift}}
 
+image:
+  pullPolicy: {{ .Values.imagePullPolicy }}
+
 istio:
   enabled: {{ .Values.istio.enabled }}
   kiali:
     gateways:
     - istio-system/{{ default "public" .Values.kiali.ingress.gateway }}
+
+{{- if .Values.istio.enabled }}
+podAnnotations:
+  {{ include "istioAnnotation" . }}
+{{- end }}
 
 monitoring:
   enabled: {{ .Values.monitoring.enabled }}
@@ -22,6 +30,12 @@ elasticsearch:
   enabled: {{ .Values.logging.enabled }}
 cr:
   spec:
+    deployment:
+      image_pull_policy: {{ .Values.imagePullPolicy }}
+      {{- if .Values.istio.enabled }}
+      pod_annotations:
+        {{ include "istioAnnotation" . }}
+      {{- end }}
     server:
       web_port: "443"
     auth:
@@ -56,9 +70,15 @@ cr:
           password: "secret:grafana-auth:password"
         {{- end }}
       tracing:
-        enabled: {{ .Values.jaeger.enabled }}
+        enabled: {{ or .Values.tempo.enabled .Values.jaeger.enabled }}
+        {{- if and .Values.tempo.enabled (not .Values.jaeger.enabled)}}
+        in_cluster_url: "http://tempo-tempo.tempo.svc.cluster.local:16686"
+        {{- $tracingUrl := first (dig "istio" "tempoQuery" "hosts" list .Values.tempo.values) }}
+        url: https://{{ tpl ($tracingUrl | default (printf "%s.%s" "tracing" $domainName )) . }}
+        {{- else}}
         {{- $tracingUrl := first (dig "istio" "jaeger" "hosts" list .Values.jaeger.values) }}
         url: https://{{ tpl ($tracingUrl | default (printf "%s.%s" "tracing" $domainName )) . }}
+        {{- end }}
       istio:
         component_status:
           components:

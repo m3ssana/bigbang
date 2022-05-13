@@ -23,6 +23,10 @@ spec:
         name: {{ $name }}
         namespace: {{ .Release.Namespace }}
 
+  {{- if .Values.addons.keycloak.postRenderers }}
+  postRenderers:
+  {{ toYaml .Values.addons.keycloak.postRenderers | nindent 4 }}
+  {{- end }}
 
   {{- toYaml $fluxSettingsKeycloak | nindent 2 }}
 
@@ -37,7 +41,7 @@ spec:
       kind: Secret
       valuesKey: "overlays"
 
-  {{- if or .Values.gatekeeper.enabled .Values.istio.enabled .Values.monitoring.enabled }}
+  {{- if or .Values.gatekeeper.enabled .Values.istio.enabled .Values.kyvernopolicies.enabled .Values.monitoring.enabled }}
   dependsOn:
   {{- if .Values.gatekeeper.enabled }}
   - name: gatekeeper
@@ -45,6 +49,10 @@ spec:
   {{- end }}
   {{- if .Values.istio.enabled }}
   - name: istio
+    namespace: {{ .Release.Namespace }}
+  {{- end }}
+  {{- if .Values.kyvernopolicies.enabled }}
+  - name: kyvernopolicies
     namespace: {{ .Release.Namespace }}
   {{- end }}
   {{- if .Values.monitoring.enabled }}
