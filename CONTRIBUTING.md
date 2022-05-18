@@ -88,4 +88,3 @@ Follow instructions in the [Big Bang encryption guide](./docs/encryption.md) for
 The merge request process is provided as an overview of the pipeline stages required to get a commit merged.
 
 Follow instruction in [CI-Workflow](./docs/developer/ci-workflow.md) for specific details on the pipeline stages.
-
