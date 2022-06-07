@@ -1,4 +1,4 @@
-{{- if or .Values.loki.enabled .Values.promtail.enabled }}
+{{- if or .Values.loki.enabled }}
 apiVersion: v1
 kind: Namespace
 metadata:
