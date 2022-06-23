@@ -160,6 +160,9 @@ gatekeeper:
           - keycloak/keycloak-cypress-test
           - jaeger/jaeger-operator-cypress-test
           - monitoring/kube-prometheus-stack-cypress-test
+          - vault/vault-cypress-test
+          - logging/loki-cypress-test
+          - twistlock/twistlock-cypress-test
           # Allow kyverno test vectors for Helm test
           - default/restrict-host-path-mount-.?
           - default/restrict-host-path-write-.?
@@ -253,6 +256,9 @@ gatekeeper:
           - keycloak/keycloak-cypress-test
           - jaeger/jaeger-operator-cypress-test
           - monitoring/kube-prometheus-stack-cypress-test
+          - vault/vault-cypress-test
+          - logging/loki-cypress-test
+          - twistlock/twistlock-cypress-test
           # Allow kyverno test vectors for Helm test
           - default/restrict-host-path-mount-.?
           - default/restrict-host-path-write-.?
@@ -359,11 +365,19 @@ kyvernopolicies:
               - keycloak
               - jaeger
               - monitoring
+              - vault
+              - logging
+              - twistlock
               names:
               - "*-cypress-test*"
         parameters:
           allow:
           - /tmp/allowed
+      restrict-host-path-mount-pv:
+        parameters:
+          allow:
+          - /tmp/allowed
+          - /var/lib/rancher/k3s/storage/pvc-*
       restrict-host-path-write:
         exclude:
           any:
@@ -377,6 +391,9 @@ kyvernopolicies:
               - keycloak
               - jaeger
               - monitoring
+              - vault
+              - logging
+              - twistlock
               names:
               - "*-cypress-test*"
         parameters:
@@ -410,6 +427,9 @@ kyvernopolicies:
               - keycloak
               - jaeger
               - monitoring
+              - vault
+              - logging
+              - twistlock
               names:
               - "*-cypress-test*"
       update-image-pull-policy:
@@ -486,17 +506,17 @@ loki:
   strategy: scalable
   values:
     global:
-      createGlobalConfig: true 
+      createGlobalConfig: true
       existingSecretForConfig: "loki-config"
     loki-simple-scalable:
       write:
         replicas: 1
         persistence:
           size: 2Gi
-        resources: 
+        resources:
           limits:
             cpu: 200m
-            memory: 400Mi 
+            memory: 400Mi
           requests:
             cpu: 200m
             memory: 400Mi
@@ -504,13 +524,24 @@ loki:
         replicas: 1
         persistence:
           size: 2Gi
-        resources: 
+        resources:
           limits:
             cpu: 200m
-            memory: 400Mi 
+            memory: 400Mi
           requests:
             cpu: 200m
-            memory: 400Mi 
+            memory: 400Mi
+    bbtests:
+      enabled: true
+      cypress:
+        artifacts: true
+        envs:
+          cypress_check_datasource: 'true'
+          cypress_grafana_url: 'https://grafana.bigbang.dev'
+      scripts:
+        image: registry1.dso.mil/ironbank/big-bang/base:1.17.0
+        envs:
+          LOKI_URL: 'http://logging-loki-write.logging.svc:3100'
 
 tempo:
   enabled: false
@@ -535,6 +566,7 @@ tempo:
           cypress_check_datasource: 'true'
           cypress_grafana_url: 'https://grafana.bigbang.dev'
       scripts:
+        enabled: false
         envs:
           TEMPO_METRICS_URL: 'http://tempo-tempo.tempo.svc:3100'
 
@@ -709,10 +741,13 @@ addons:
           memory: 100Mi
         limits: {}
       redis:
+        enabled: true
+      redis-bb:
         master:
           persistence:
             size: 256Mi
         replica:
+          replicaCount: 0
           persistence:
             size: 256Mi
 
@@ -788,9 +823,6 @@ addons:
             requests:
               cpu: 10m
             limits: {}
-        # Required for RKE2 nightly CI cluster with FIPS since Gitlab 14.7.X
-        postgresqlExtendedConf:
-          passwordEncryption: "scram-sha-256"
       minio:
         persistence:
           size: 256Mi
@@ -978,6 +1010,10 @@ addons:
             cpu: 100m
             memory: 200Mi
           limits: {}
+      anchore-ui-redis:
+        enabled: true
+        replica:
+          replicaCount: 0
       bbtests:
         enabled: true
         scripts:
@@ -1278,17 +1314,23 @@ addons:
 
   vault:
     enabled: false
+    ingress:
+      gateway: "passthrough"
+      key: "" # Gets added via chart/ingress-certs.yaml
+      cert: "" # Gets added via chart/ingress-certs.yaml
     sso:
       enabled: false
       client_id: dev_00eb8904-5b88-4c68-ad67-cec0d2e07aa6_vault
     values:
-      server:
-        dataStorage:
-          enabled: true
-          size: 256Mi
-        auditStorage:
-          size: 256Mi
+      autoInit:
+        enabled: true
+      global:
+        tlsDisable: false
       injector:
+        extraEnvironmentVars:
+          VAULT_API_ADDR: https://vault.bigbang.dev
+        certs:
+          secretName: vault-tls
         affinity: |
           podAntiAffinity:
             preferredDuringSchedulingIgnoredDuringExecution:
@@ -1300,9 +1342,66 @@ addons:
                       app.kubernetes.io/instance: "{{ .Release.Name }}"
                       component: webhook
                   topologyKey: kubernetes.io/hostname
+      server:
+        extraEnvironmentVars:
+          VAULT_API_ADDR: https://vault.bigbang.dev  #istio GW
+          VAULT_SKIP_VERIFY: "true"
+          VAULT_LOG_FORMAT: "json"
+        dataStorage:
+          enabled: true
+          size: 256Mi
+        auditStorage:
+          size: 256Mi
+        ha:
+          enabled: true
+          replicas: 1
+
+          raft:
+            enabled: true
+            config: |
+              ui = true
+
+              listener "tcp" {
+                tls_disable = 0
+                address = "[::]:8200"
+                cluster_address = "[::]:8201"
+                tls_cert_file = "/vault/tls/tls.crt"
+                tls_key_file  = "/vault/tls/tls.key"
+              }
+
+              storage "raft" {
+                path = "/vault/data"
+
+                retry_join {
+                  leader_api_addr = "https://vault-vault-0.vault-vault-internal:8200"
+                  leader_client_cert_file = "/vault/tls/tls.crt"
+                  leader_client_key_file = "/vault/tls/tls.key"
+                  leader_tls_servername = "vault.bigbang.dev"
+                }
+              }
+
+              seal "awskms" {
+                region     = "us-gov-west-1"
+                kms_key_id = "17c01cdf-2bf9-4f58-9a54-c1c4e4b145be"
+                endpoint   = "https://kms.us-gov-west-1.amazonaws.com"
+              }
+
+              telemetry {
+                prometheus_retention_time = "24h"
+                disable_hostname = true
+                unauthenticated_metrics_access = true
+              }
+
+              service_registration "kubernetes" {}
+
       bbtests:
         enabled: true
         cypress:
           artifacts: true
           envs:
             cypress_vault_url: "https://vault.bigbang.dev"
+
+  metricsServer:
+    enabled: false
+    values:
+      replicas: 1
