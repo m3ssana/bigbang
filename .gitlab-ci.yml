@@ -2,3 +2,5 @@ include:
   - project: 'platform-one/big-bang/pipeline-templates/pipeline-templates'
     ref: '53-ci-cleanup'
     file: '/pipelines/bigbang.yaml'
+variables:
+  PIPELINE_REPO_BRANCH: '53-ci-cleanup' 
