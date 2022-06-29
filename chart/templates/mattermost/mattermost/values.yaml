@@ -20,6 +20,13 @@ istio:
     - istio-system/{{ default "public" .Values.addons.mattermost.ingress.gateway }}
   injection: {{ dig "istio" "injection" "enabled" .Values.addons.mattermost }}
 
+{{ $injectionEnabled := (eq (dig "istio" "injection" "enabled" .Values.addons.mattermost) "enabled") }}
+{{- if and .Values.istio.enabled $injectionEnabled }}
+resourcePatch:
+  deployment:
+    patch: "[{\"op\":\"add\",\"path\":\"/spec/template/metadata/annotations\",\"value\":{{ "{" }}{{ include "istioAnnotationQuote" . }}{{ "}}" }}]"
+{{- end }}
+
 monitoring:
   enabled: {{ .Values.monitoring.enabled }}
 
@@ -55,12 +62,19 @@ enterprise:
 database:
   secret: "mattermost-database-secret"
 {{- else }}
-
 postgresql:
   image:
     pullSecrets:
       - private-registry
   install: true
+  {{- if and $.Values.istio.enabled $injectionEnabled }}
+  primary:
+    podAnnotations:
+      {{ include "istioAnnotation" $ }}
+  readReplicas:
+    podAnnotations:
+      {{ include "istioAnnotation" $ }}
+  {{- end }}
 {{- end }}
 {{- end }}
 
@@ -80,6 +94,10 @@ minio:
   tenants:
     metrics:
       enabled: {{ $.Values.monitoring.enabled }}
+  {{- if and $.Values.istio.enabled $injectionEnabled }}
+  annotations:
+    {{ include "istioAnnotation" $ }}
+  {{- end }}
 {{- end }}
 {{- end }}
 

@@ -158,3 +158,16 @@ bigbang.dev/istioVersion: {{ .Values.istio.git.tag | trimSuffix (regexFind "-bb.
 bigbang.dev/istioVersion: {{ .Values.istio.git.branch }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Annotation for Istio version - special case for MM, escaped quotes around the values
+*/}}
+{{- define "istioAnnotationQuote" -}}
+{{- if .Values.istio.git.semver -}}
+\"bigbang.dev/istioVersion\": \"{{ .Values.istio.git.semver | trimSuffix (regexFind "-bb.*" .Values.istio.git.semver) }}\"
+{{- else if .Values.istio.git.tag -}}
+\"bigbang.dev/istioVersion\": \"{{ .Values.istio.git.tag | trimSuffix (regexFind "-bb.*" .Values.istio.git.tag) }}\"
+{{- else if .Values.istio.git.branch -}}
+\"bigbang.dev/istioVersion\": \"{{ .Values.istio.git.branch }}\"
+{{- end -}}
+{{- end -}}
