@@ -1,0 +1,25 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+
+
+## Overview
+
+Configuration of Big Bang is achieved by overriding default values set in the package or Big Bang using the [environment template](https://repo1.dso.mil/platform-one/big-bang/customers/template).  The template has a 4 potential locations for setting values: `base/secrets.enc.yaml`, `base/configmap.yaml`, `<env>/secrets.enc.yaml`, and `<env>/configmap.yaml`.  Overrides proceed as follows, with `<env>/configmap.yaml` having the highest precedence.
+
+```mermaid
+graph TD
+  pkg[Package values]
+  -->bb[Big Bang values]
+  -->base-s[`base/secrets.enc.yaml` values]
+  -->base-c[`base/configmap.yaml` values]
+  -->env-s[`<env>/secrets.enc.yaml` values]
+  -->env-c[`<env>/configmap.yaml` values]
+```
+
+In all four cases, Big Bang reads a single key named `values.yaml` that contains the data to override.  See the [Big Bang environment template](https://repo1.dso.mil/platform-one/big-bang/customers/template) for examples on how to use these files to override values.
+
+
+{{ template "chart.valuesSection" . }}
