@@ -22,13 +22,14 @@ graph TB
   end
   subgraph "Monitoring"
   Grafana --> Prometheus
-  Thanos
   end
   ServiceMesh
-  
+  Jaeger
+  Kiali --> ServiceMesh
+
   ClusterAuditor --> LoggingECK
   ClusterAuditor --> OPA[Policy Enforcement]
-  end      
+  end
 
   subgraph "Package Utilities"
     Postgres[DB]
@@ -74,14 +75,15 @@ graph TB
   end
   subgraph "Monitoring"
   Grafana --> Prometheus
-  Thanos
   end
   ServiceMesh
+  Jaeger
+  Kiali --> ServiceMesh
   Twistlock
-  
+
   ClusterAuditor --> LoggingECK
   ClusterAuditor --> OPA[Policy Enforcement]
-  end      
+  end
 ```
 
 ### Service Mesh
@@ -190,13 +192,12 @@ Owners:
 
 ### Monitoring
 
-Monitoring is provided by Prometheus, Grafana and Thanos.
+Monitoring is provided by Prometheus and Grafana.
 
 Product:
 
 * [Prometheus](https://prometheus.io/)
 * [Grafana](https://grafana.com/)
-* [Thanos](https://thanos.io/)
 
 Repository:
 
@@ -219,7 +220,7 @@ Repository: [Cluster Auditor](https://repo1.dso.mil/platform-one/big-bang/apps/c
 Dependencies:
 
 * [Logging](#logging)
-* [OPA Gatekeer](#policy-enforcement)
+* [OPA Gatekeeper](#policy-enforcement)
 
 Owners:
 
@@ -228,6 +229,44 @@ Owners:
 Repository:
 
 * [Cluster Auditor Repo](https://repo1.dso.mil/platform-one/big-bang/apps/core/cluster-auditor)
+
+### Jaeger
+
+Jaeger is an end-to-end distributed tracing tool for monitoring and troubleshooting cluster services.
+
+Product:
+
+* [Jaeger](https://jaegertracing.io/)
+
+Repository:
+
+* [Jaeger Repo](https://repo1.dso.mil/platform-one/big-bang/apps/core/jaeger)
+
+Dependencies: None
+
+Owners:
+
+* [CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/jaeger/-/blob/main/CODEOWNERS)
+
+### Kiali
+
+Kiali is a management console for the Istio service mesh.
+
+Product:
+
+* [Kiali](https://kiali.io/)
+
+Repository:
+
+* [Kiali Repo](https://repo1.dso.mil/platform-one/big-bang/apps/core/kiali)
+
+Dependencies: None
+
+* [Istio](#service-mesh)
+
+Owners:
+
+* [CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/kiali/-/blob/main/CODEOWNERS)
 
 ### Twistlock
 
@@ -256,7 +295,7 @@ Addons are supported Big Bang packages that come disabled by default.
 Security Tools are hosted here: [Security Tools](https://repo1.dso.mil/platform-one/big-bang/apps/security-tools)
 
 ```mermaid
-graph TB  
+graph TB
 
   subgraph "Package Utilities"
     Postgres(DB)
