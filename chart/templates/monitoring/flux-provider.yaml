@@ -1,0 +1,12 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: grafana-flux
+  namespace: monitoring
+spec:
+  type: grafana
+  address: "http://monitoring-monitoring-grafana.monitoring/api/annotations"
+  secretRef:
+    name: grafana-auth
+{{- end }}
