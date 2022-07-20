@@ -9,186 +9,166 @@ Each package has _at least_ two `CODEOWNERS`.  Responsibilities are outlined [he
 ## Dependencies
 
 ```mermaid
-graph TB
-  subgraph "Core"
-  subgraph "Logging"
-  LoggingElastic[Elasticsearch]
-  LoggingKibana[Kibana]
-  LoggingECK[ECK]
-  LoggingElastic  --> LoggingECK
-  LoggingKibana  --> LoggingECK
-  LoggingKibana --> LoggingElastic
-  Fluentd --> LoggingElastic
-  end
-  subgraph "Monitoring"
-  Grafana --> Prometheus
-  end
-  ServiceMesh
-  Jaeger
-  Kiali --> ServiceMesh
 
-  ClusterAuditor --> LoggingECK
-  ClusterAuditor --> OPA[Policy Enforcement]
-  end
+flowchart LR
+  subgraph AddOns
+    subgraph AppUtils[Application Utilities]
+      MinIO
+    end
 
-  subgraph "Package Utilities"
-    Postgres[DB]
-    MinIO[S3 Compatible Storage]
-    Redis[Cache Server]
-  end
+    subgraph ClusterUtils[Cluster Utilities]
+    direction BT
+      ArgoCD
+      Metrics[Metrics Server]
+      Velero
+    end
 
-  subgraph "Security"
-  Keycloak --> Postgres
-  Anchore[Anchore Enterprise] --> Postgres
-  Twistlock
-  end
+    subgraph "Security"
+    direction BT
+      Authservice --> I[Istio]
+      Keycloak
+      Anchore
+      Vault[Vault*]
+    end
 
-  subgraph "Developer Tools"
-    GitLab --> GitLabRunners[GitLab Runners]
-    GitLab --> MinIO
-    GitLab --> Redis
-    GitLab --> Postgres
-    Sonarqube --> Postgres
+    subgraph "Collaboration"
+    direction BT
+      MatterMost
+    end
+
+    subgraph "Developer Tools"
+    direction BT
+      GLRunners[GitLab Runners] --> GitLab
+      Nexux[Nexus Repository]
+      Sonarqube
+    end
   end
 
-  subgraph "Collaboration Tools"
-    MatterMost --> MinIO
+  subgraph Core
+    direction BT
+
+    subgraph L[Logging]
+      subgraph EFK[Default]
+        Kibana & Fluentbit --> Elastic
+      end
+      subgraph PLG[PLG - Alternative]
+      style PLG stroke-dasharray: 10 10
+        Promtail[Promtail*] --> Loki[Loki*]
+      end
+    end
+
+    subgraph M[Monitoring]
+      Grafana --> Prometheus
+      Grafana -.-> Loki
+    end
+
+    subgraph PE[Policy Enforcement]
+      subgraph CA[Default]
+      direction BT
+        ClusterAuditor --> OPA[OPA Gatekeeper]
+      end
+      subgraph KyvernoStack[Alternative]
+      style KyvernoStack stroke-dasharray: 10 10
+      direction BT
+        KyvernoReporter[Kyverno Reporter*] --> Kyverno[Kyverno*]
+        click Kyverno "./#policy-enforcement"
+        click KyvernoReporter "packages/kyverno/Architecture.md"
+      end
+    end
+
+    subgraph RS[Runtime Security]
+      subgraph TL[Default]
+        Twistlock[Prisma Cloud Compute]
+      end
+    end
+
+    subgraph DT[Distributed Tracing]
+      subgraph J[Default]
+        Jaeger ----> Elastic
+      end
+      subgraph T[Alternative]
+      style T stroke-dasharray: 10 10
+        Tempo[Tempo*] -.-> Grafana
+      end
+    end
+
+    subgraph SM[Service Mesh]
+      Jaeger --> Istio
+      Tempo -.-> Istio
+      Kiali --> Jaeger & Istio & Prometheus
+    end
   end
 
 ```
+
+> Footnotes:
+>
+> - Pages marked with `*` are  in Beta testing
+> - Dotted lines in `Core` indicate a package that is not enabled by default
+> - The following were left off the chart to keep it simple
+>   - Most packages depend on Istio for encrypted traffic and ingress to web interfaces.
+>   - Some packages have operators that are deployed prior to the package and manage the package's state.
 
 ## Core
 
-Core packages are supported Big Bang packages that have to be enabled and are located at [Big Bang Core](https://repo1.dso.mil/platform-one/big-bang/apps/core).  Core packages are platform/admin level packages that are leveraged by other packages.
-
-```mermaid
-graph TB
-  subgraph "Core"
-  subgraph "Logging"
-  LoggingElastic[Elasticsearch]
-  LoggingKibana[Kibana]
-  LoggingECK[ECK]
-  LoggingElastic  --> LoggingECK
-  LoggingKibana  --> LoggingECK
-  LoggingKibana --> LoggingElastic
-  Fluentd --> LoggingElastic
-  end
-  subgraph "Monitoring"
-  Grafana --> Prometheus
-  end
-  ServiceMesh
-  Jaeger
-  Kiali --> ServiceMesh
-  Twistlock
-
-  ClusterAuditor --> LoggingECK
-  ClusterAuditor --> OPA[Policy Enforcement]
-  end
-```
+Core packages make up the foundation of Big Bang.  At least one of the supported sets listed in each category must be enabled to be considered a Big Bang cluster.  These packages are designed to provide administrative support for other packages.
 
 ### Service Mesh
 
-Current implementation of Service Mesh is provided by Istio. Service Mesh should be the first Package deployed to ensure other applications are operating with visibility and security.
+A service mesh is a dedicated infrastructure layer for making service-to-service communication safe, fast, and reliable.  It provides fine-grained control and enforcement of network routing into, out of, and within the cluster.  It can also supply end-to-end traffic encryption, authentication, and authorization.
 
-Product:
+Product Details:
 
-* [Istio](https://istio.io/)
+* [Istio](packages/istio/Architecture.md)
 
-Repository:
+Repositories:
 
-* [Istio-operator](https://repo1.dso.mil/platform-one/big-bang/apps/core/istio-operator)
-* [Istio-controlplane](https://repo1.dso.mil/platform-one/big-bang/apps/core/istio-controlplane)
-
-Dependency: None
-
-Owners:
-
-* [CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/istio-operator/-/blob/main/CODEOWNERS)
-
-### Auth Service
-
-authservice helps delegate the OIDC Authorization Code Grant Flow to the Istio mesh. authservice is compatible with any standard OIDC Provider as well as other Istio End-user Auth features, including Authentication Policy and RBAC. Together, they allow developers to protect their APIs and web apps without any application code required.
-
-Product:
-
-* [authservice](https://github.com/istio-ecosystem/authservice)
-
-Repository:
-
-* [authservice](https://repo1.dso.mil/platform-one/big-bang/apps/core/authservice)
-
-Dependency: None
-
-Owners:
-
-* [CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/authservice/-/blob/main/CODEOWNERS)
+* [istio-operator](https://repo1.dso.mil/platform-one/big-bang/apps/core/istio-operator)
+* [istio-controlplane](https://repo1.dso.mil/platform-one/big-bang/apps/core/istio-controlplane)
 
 ### Logging
 
-The logging package is responsible for deploying Elasticsearch, Kibana, and Fluentd.  It is also responsible for configuring the logging pipelines to aggregate all running containers logs for viewing by both Cluster Owners and Application Operators.
+A logging stack is a set of scalable tools that can aggregate logs from cluster services and provide real-time queries and analysis.  Logging is typically comprised of three components: a forwarder, storage, and a visualizer.
 
-The logging capability is comprised of:
+### EFK Logging Stack (Default)
 
-* Elastic Cloud on Kubernetes (ECK) Operator
-* Elasticsearch
-* Kibana
-* Fluentd
-* Logging Operator
+Product Details:
 
-Repository:
+* [Elasticsearch / Kibana](packages/elasticsearch-kibana/Architecture.md) - storage and visualizer
+* [Fluentbit](packages/fluentbit/Architecture.md) - forwarder
 
-* [Elasticsearch-kibana](https://repo1.dso.mil/platform-one/big-bang/apps/core/elasticsearch-kibana)
-* [Fluentbit](https://repo1.dso.mil/platform-one/big-bang/apps/core/fluentbit)
-* [Eck-operator](https://repo1.dso.mil/platform-one/big-bang/apps/core/eck-operator)
+Repositories:
 
-Dependencies:
+* [eck-operator](https://repo1.dso.mil/platform-one/big-bang/apps/core/eck-operator)
+* [elasticsearch-kibana](https://repo1.dso.mil/platform-one/big-bang/apps/core/elasticsearch-kibana)
+* [fluentbit](https://repo1.dso.mil/platform-one/big-bang/apps/core/fluentbit)
 
-* RWO StorageClass
+### PLG Logging Stack (Alternative) [BETA]
 
-Owners:
+Product Details:
 
-* [Elasticsearch-kibana CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/elasticsearch-kibana/-/blob/main/CODEOWNERS)
-* [Fluentbit CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/fluentbit/-/blob/main/CODEOWNERS)
-* [Eck-operator CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/eck-operator/-/blob/main/CODEOWNERS)
+* [Loki](packages/elasticsearch-kibana/Architecture.md) - storage
+* [Promtail](packages/promtail/Architecture.md) - forwarder
+* Grafana, which is part of [monitoring](#monitoring), is used as the visualizer
+
+Repositories:
+
+* [loki](https://repo1.dso.mil/platform-one/big-bang/apps/core/eck-operator)
+* [elasticsearch-kibana](https://repo1.dso.mil/platform-one/big-bang/apps/core/elasticsearch-kibana)
+* [fluentbit](https://repo1.dso.mil/platform-one/big-bang/apps/core/fluentbit)
 
 ### Policy Enforcement
 
-Policy Enforcement is done in Big Bang by either Open Policy Agent Gatekeeper (OPA Gatekeeper for short) or Kyverno.
+Policy Enforcement is the ability to validate Kubernetes resources against compliance, security, and best-practice policies.  If a resource violates a policy, the enforcement tool can deny access to the cluster, dynamically modify the resource to force compliance, or simply record the violation in an audit report.  Usually, a reporting tool accompanies the engine to help with analyzing and visualizing policy violations.
 
-#### OPA Gatekeeper
-
+|Default|Group|Package|Repositories|Notes|
+|--|--|--|--|--|--|
+|X|Gatekeeper|[OPA Gatekeeper](packages/opa-gatekeeper/Architecture.md)|[policy](https://repo1.dso.mil/platform-one/big-bang/apps/core/policy)|Engine & Policies
+|X|Gatekeeper|[Cluster Auditor](packages/cluster-auditor/Architecture.md)|[cluster-auditor](https://repo1.dso.mil/platform-one/big-bang/apps/core/cluster-auditor)|Reporting
+| |Kyverno|[Kyverno](packages/kyverno/Architecture.md)|[kyverno](https://repo1.dso.mil/platform-one/big-bang/apps/sandbox/kyverno)|Engine
+| |Kyverno|Kyverno Policies|[kyverno-policies](https://repo1.dso.mil/platform-one/big-bang/apps/sandbox/kyverno-policies)|Policies
+| |Kyverno|Kyverno Reporter|[kyverno-reporter](https://repo1.dso.mil/platform-one/big-bang/apps/sandbox/kyverno-reporter)|Reporting
 Product:
-
-* [OPA Gatekeeper](https://github.com/open-policy-agent/gatekeeper)
-* [Open Policy Agent](https://www.openpolicyagent.org/)
-
-Repository:
-
-* [Policy Repo](https://repo1.dso.mil/platform-one/big-bang/apps/core/policy)
-
-Dependencies: None
-
-Owners:
-
-* [CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/policy/-/blob/main/CODEOWNERS)
-
-#### Kyverno
-
-Product:
-
-* [Kyverno](https://github.com/kyverno/kyverno)
-* [Kyverno Policy Reporter](https://github.com/kyverno/policy-reporter)
-
-Repository:
-
-* [Kyverno](https://repo1.dso.mil/platform-one/big-bang/apps/sandbox/kyverno)
-* [Kyverno Policies](https://repo1.dso.mil/platform-one/big-bang/apps/sandbox/kyverno-policies)
-
-Dependencies: None
-
-Owners:
-
-* [CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/policy/-/blob/main/CODEOWNERS)
 
 ### Monitoring
 
@@ -289,6 +269,25 @@ Owners:
 ## Addons
 
 Addons are supported Big Bang packages that come disabled by default.
+
+### Auth Service
+
+authservice helps delegate the OIDC Authorization Code Grant Flow to the Istio mesh. authservice is compatible with any standard OIDC Provider as well as other Istio End-user Auth features, including Authentication Policy and RBAC. Together, they allow developers to protect their APIs and web apps without any application code required.
+
+Product:
+
+* [authservice](https://github.com/istio-ecosystem/authservice)
+
+Repository:
+
+* [authservice](https://repo1.dso.mil/platform-one/big-bang/apps/core/authservice)
+
+Dependency: None
+
+Owners:
+
+* [CODEOWNERS](https://repo1.dso.mil/platform-one/big-bang/apps/core/authservice/-/blob/main/CODEOWNERS)
+
 
 ### Security Tools
 
