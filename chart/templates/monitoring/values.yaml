@@ -58,8 +58,6 @@ istio:
     gateways:
     - istio-system/{{ default "public" .Values.monitoring.ingress.gateway }}
   injection: {{ dig "istio" "injection" "enabled" .Values.monitoring }}
-  mtls:
-    mode: {{default "PERMISSIVE" .Values.istio.mtls.mode }}
 
 alertmanager:
   alertmanagerSpec:
@@ -83,22 +81,6 @@ alertmanager:
         {{ include "istioAnnotation" . }}
       {{- end }}
     {{- end }}
-  {{- if or $istioInjection (and (eq .Values.istio.mtls.mode "STRICT") .Values.istio.enabled (eq .Values.istio.injection "enabled")) }}
-    volumes:
-      - name: istio-certs-dir
-        emptyDir:
-          medium: Memory
-    volumeMounts:
-      - name: istio-certs-dir
-        mountPath: /etc/prom-certs/
-  serviceMonitor:
-    scheme: "https"
-    tlsConfig:
-      caFile: /etc/prom-certs/root-cert.pem
-      certFile: /etc/prom-certs/cert-chain.pem
-      keyFile: /etc/prom-certs/key.pem
-      insecureSkipVerify: true
-  {{- end }}
 
 prometheus:
   prometheusSpec:
@@ -126,6 +108,12 @@ prometheus:
       annotations:
         {{- if $istioInjection }}
         {{ include "istioAnnotation" . }}
+        traffic.sidecar.istio.io/includeInboundPorts: ""
+        traffic.sidecar.istio.io/includeOutboundIPRanges: ""
+        proxy.istio.io/config: |
+          proxyMetadata:
+            OUTPUT_CERTS: /etc/istio-output-certs
+        sidecar.istio.io/userVolumeMount: '[{"name": "istio-certs", "mountPath": "/etc/istio-output-certs"}]'
         {{- end }}
         {{- if .Values.addons.vault.enabled }}
         vault.hashicorp.com/agent-inject: "true"
@@ -133,35 +121,18 @@ prometheus:
         vault.hashicorp.com/agent-inject-token: "true"
         vault.hashicorp.com/role: "prometheus"
         {{- end }}
-        {{- if or $istioInjection (and (eq .Values.istio.mtls.mode "STRICT") .Values.istio.enabled) }}
-        sidecar.istio.io/inject: "true"
-        traffic.sidecar.istio.io/includeInboundPorts: "" # do not intercept any inbound ports
-        traffic.sidecar.istio.io/includeOutboundIPRanges: "" # do not intercept any outbound traffic
-        proxy.istio.io/config:
-          | # configure an env variable `OUTPUT_CERTS` to write certificates to the given folder
-          proxyMetadata:
-            OUTPUT_CERTS: /etc/istio-output-certs
-        sidecar.istio.io/userVolume: '[{"name": "istio-certs", "emptyDir": {"medium":"Memory"}}]' # mount the shared volume
-        sidecar.istio.io/userVolumeMount: '[{"name": "istio-certs", "mountPath": "/etc/istio-output-certs"}]'
-        {{- end }}
       {{- end }}
     {{- end }}
-  {{- if or $istioInjection (and (eq .Values.istio.mtls.mode "STRICT") .Values.istio.enabled (eq .Values.istio.injection "enabled")) }}
-  thanosServiceMonitor:
-    scheme: "https"
-    tlsConfig:
-      caFile: /etc/prom-certs/root-cert.pem
-      certFile: /etc/prom-certs/cert-chain.pem
-      keyFile: /etc/prom-certs/key.pem
-      insecureSkipVerify: true
-  serviceMonitor:
-    scheme: "https"
-    tlsConfig:
-      caFile: /etc/prom-certs/root-cert.pem
-      certFile: /etc/prom-certs/cert-chain.pem
-      keyFile: /etc/prom-certs/key.pem
-      insecureSkipVerify: true
-  {{- end }}
+    {{- if $istioInjection }}
+    # Add volume/mount for Istio certs for mTLS scraping
+    volumes:
+      - emptyDir:
+          medium: Memory
+        name: istio-certs
+    volumeMounts:
+      - mountPath: /etc/prom-certs/
+        name: istio-certs
+    {{- end }}
 
 anchore:
   enabled: {{ .Values.addons.anchore.enabled }}
@@ -314,16 +285,6 @@ grafana:
   {{- end }}
   {{- end }}
 
-  {{- if .Values.istio.enabled }}
-  serviceMonitor:
-    scheme: https
-    tlsConfig:
-      caFile: /etc/prom-certs/root-cert.pem
-      certFile: /etc/prom-certs/cert-chain.pem
-      keyFile: /etc/prom-certs/key.pem
-      insecureSkipVerify: true
-  {{- end }}
-
   grafana.ini:
     {{- if .Values.istio.enabled }}
     server:
@@ -387,17 +348,9 @@ prometheusOperator:
     patch:
       image:
         pullPolicy: {{ .Values.imagePullPolicy }}
-  {{- if or $istioInjection (and (eq .Values.istio.mtls.mode "STRICT") .Values.istio.enabled (eq .Values.istio.injection "enabled")) }}
+  {{- if $istioInjection }}
   podAnnotations:
     {{ include "istioAnnotation" . }}
-    {{- if and (eq .Values.istio.mtls.mode "STRICT") (.Values.istio.enabled) (eq .Values.istio.injection "enabled") }}
-    traffic.sidecar.istio.io/includeInboundPorts: ""   # do not intercept any inbound ports
-    traffic.sidecar.istio.io/includeOutboundIPRanges: ""  # do not intercept any outbound traffic
-    proxy.istio.io/config: |  # configure an env variable `OUTPUT_CERTS` to write certificates to the given folder
-      proxyMetadata:
-        OUTPUT_CERTS: /etc/istio-output-certs
-    sidecar.istio.io/userVolumeMount: '[{"name": "istio-certs", "mountPath": "/etc/istio-output-certs"}]'
-    {{- end }}
   {{- end }}
 
 {{- end }}
