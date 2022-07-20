@@ -118,7 +118,6 @@ prometheus:
       annotations:
         {{- if $istioInjection }}
         {{ include "istioAnnotation" . }}
-        traffic.sidecar.istio.io/includeInboundPorts: ""
         traffic.sidecar.istio.io/includeOutboundIPRanges: ""
         proxy.istio.io/config: |
           proxyMetadata:
