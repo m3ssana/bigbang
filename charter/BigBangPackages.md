@@ -1,6 +1,6 @@
 # Big Bang Packages
 
-Big Bang includes many different packages that provide services to the ecosystem.  Each of these packages is deployed by a Helm chart located in a repository under [Big Bang's Packages Group](https://repo1.dso.mil/platform-one/big-bang/apps).  The packages are broken up into several categories listed below.
+Big Bang includes many different packages that provide services to the ecosystem.  Each of these packages is deployed by a Helm chart located in a repository under [Big Bang's Packages Group](https://repo1.dso.mil/platform-one/big-bang/apps).  The packages are broken up into several categories listed below.  Sometimes packages are tightly coupled and grouped together in a stack.  When using a stack, all packages in the stack will be deployed.
 
 [[_TOC_]]
 
@@ -253,3 +253,7 @@ Developer tools include packages that a programmer would use to plan, author, te
 |GitLab|GitLab Runner|Executor for GitLab pipelines|[gitlab-runner](https://repo1.dso.mil/platform-one/big-bang/apps/developer-tools/gitlab-runner)|
 |Nexus|Nexus Repository|Artifact repository|[nexus](https://repo1.dso.mil/platform-one/big-bang/apps/developer-tools/nexus)
 |Sonarqube|[Sonarqube](packages/sonarqube/Architecture.md)|Static code analysis|[sonarqube](https://repo1.dso.mil/platform-one/big-bang/apps/developer-tools/sonarqube)
+
+## Further Information
+
+You can find some additional details about features supported by each package by visiting [this document](../Packages.md).
