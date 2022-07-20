@@ -81,6 +81,16 @@ alertmanager:
         {{ include "istioAnnotation" . }}
       {{- end }}
     {{- end }}
+  {{- if $istioInjection }}
+  serviceMonitor:
+    scheme: https
+    tlsConfig:
+      caFile: /etc/prom-certs/root-cert.pem
+      certFile: /etc/prom-certs/cert-chain.pem
+      keyFile: /etc/prom-certs/key.pem
+      insecureSkipVerify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate
+  {{- end }}
+
 
 prometheus:
   prometheusSpec:
@@ -132,7 +142,15 @@ prometheus:
     volumeMounts:
       - mountPath: /etc/prom-certs/
         name: istio-certs
-    {{- end }}
+  serviceMonitor:
+    scheme: https
+    tlsConfig:
+      caFile: /etc/prom-certs/root-cert.pem
+      certFile: /etc/prom-certs/cert-chain.pem
+      keyFile: /etc/prom-certs/key.pem
+      insecureSkipVerify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate
+  {{- end }}
+
 
 anchore:
   enabled: {{ .Values.addons.anchore.enabled }}
@@ -308,6 +326,16 @@ grafana:
       {{- list "tls_client_cert" .tls_client_cert | include "bigbang.addValueIfSet" | indent 6 }}
       {{- list "tls_client_key" .tls_client_key | include "bigbang.addValueIfSet" | indent 6 }}
     {{- end }}
+
+  {{- if $istioInjection }}
+  serviceMonitor:
+    scheme: https
+    tlsConfig:
+      caFile: /etc/prom-certs/root-cert.pem
+      certFile: /etc/prom-certs/cert-chain.pem
+      keyFile: /etc/prom-certs/key.pem
+      insecureSkipVerify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate
+  {{- end }}
 
 prometheus-node-exporter:
   image:
