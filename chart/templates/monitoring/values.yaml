@@ -132,7 +132,7 @@ prometheus:
         {{- end }}
       {{- end }}
     {{- end }}
-    {{- if $istioInjection }}
+  {{- if $istioInjection }}
     # Add volume/mount for Istio certs for mTLS scraping
     volumes:
       - emptyDir:
@@ -346,6 +346,14 @@ prometheus-node-exporter:
   {{- if $istioInjection }}
   podAnnotations:
     {{ include "istioAnnotation" . }}
+  prometheus:
+    monitor:
+      scheme: https
+      tlsConfig:
+        caFile: /etc/prom-certs/root-cert.pem
+        certFile: /etc/prom-certs/cert-chain.pem
+        keyFile: /etc/prom-certs/key.pem
+        insecureSkipVerify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate
   {{- end }}
 
   {{- if .Values.openshift }}
@@ -363,6 +371,14 @@ kube-state-metrics:
   {{- if $istioInjection }}
   podAnnotations:
     {{ include "istioAnnotation" . }}
+  prometheus:
+    monitor:
+      scheme: https
+      tlsConfig:
+        caFile: /etc/prom-certs/root-cert.pem
+        certFile: /etc/prom-certs/cert-chain.pem
+        keyFile: /etc/prom-certs/key.pem
+        insecureSkipVerify: true  # Prometheus does not support Istio security naming, thus skip verifying target pod certificate
   {{- end }}
 
 prometheusOperator:
