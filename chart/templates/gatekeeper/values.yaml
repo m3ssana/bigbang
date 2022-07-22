@@ -156,7 +156,7 @@ violations:  # Try to keep this in alpha order to make it easier to find keys
        {{- end }}
   {{- end }}
 
-  openshift: {{ .Values.openshift }}
+openshift: {{ .Values.openshift }}
 {{- end -}}
 
 
