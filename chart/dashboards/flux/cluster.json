@@ -20,7 +20,7 @@
         "name": "flux events",
         "target": {
           "limit": 100,
-          "matchAny": false,
+          "matchAny": true,
           "tags": [
             "flux"
           ],

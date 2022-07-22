@@ -2,11 +2,11 @@
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
-  name: grafana-flux
+  name: grafana
   namespace: monitoring
 spec:
   providerRef:
-    name: grafana-flux
+    name: grafana
   eventSeverity: info
   eventSources:
     - kind: GitRepository
