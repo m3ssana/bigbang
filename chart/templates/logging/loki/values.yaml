@@ -27,18 +27,18 @@ istio:
 
 {{- if (eq .Values.loki.strategy "scalable") }}
 global:
-  createGlobalConfig: true
-  existingSecretForConfig: loki-config
-
-  objectStorage:
-    endpoint: {{ .Values.loki.objectStorage.endpoint }}
-    region: {{ .Values.loki.objectStorage.region }}
-    bucketnames: {{ .Values.loki.objectStorage.bucketNames }}
-    access_key_id: {{ .Values.loki.objectStorage.accessKey }}
-    secret_access_key: {{ .Values.loki.objectStorage.accessSecret }}
+  storage:
+    bucketNames:
+      {{ toYaml .Values.loki.objectStorage.bucketNames | 8 }}
+    type: {{ .Values.loki.objectStorage.type }}
+    s3:
+      endpoint: {{ .Values.loki.objectStorage.endpoint }}
+      region: {{ .Values.loki.objectStorage.region }}
+      accessKeyId: {{ .Values.loki.objectStorage.accessKey }}
+      secretAccessKey: {{ .Values.loki.objectStorage.accessSecret }}
 
 {{- with .Values.loki.objectStorage }}
-{{- if not (and .endpoint .bucketNames .accessKey .accessSecret) }}
+{{- if not (and .endpoint .bucketNames) }}
 minio:
   enabled: true
 {{- end }}
