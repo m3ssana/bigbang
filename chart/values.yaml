@@ -536,9 +536,11 @@ loki:
     # Unencoded string data. This should be placed in the secret values and then encrypted
     accessSecret: ""
 
-    # -- Bucket Names for Loki as a comma delimited list.
-    # examples: "loki-logs"
-    bucketNames: ""
+    # -- Bucket Names for the Loki buckets as YAML
+    # chunks: loki-logs
+    # ruler: loki-ruler
+    # admin: loki-admin
+    bucketNames: {}
 
   # -- Values to passthrough to the Loki chart: https://repo1.dso.mil/platform-one/big-bang/apps/sandbox/loki.git
   values: {}

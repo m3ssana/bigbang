@@ -29,7 +29,7 @@ istio:
 global:
   storage:
     bucketNames:
-      {{ toYaml .Values.loki.objectStorage.bucketNames | 8 }}
+      {{ toYaml .Values.loki.objectStorage.bucketNames | nindent 8 }}
     type: {{ .Values.loki.objectStorage.type }}
     s3:
       endpoint: {{ .Values.loki.objectStorage.endpoint }}
